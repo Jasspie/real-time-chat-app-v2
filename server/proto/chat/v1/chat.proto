@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package chat.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/Jasspie/real-time-chat-app-v2/proto/chat/v1";
+
+message Msg {
+    int32 sender_id = 1;
+    int32 room_id = 2;
+    string msg = 3;
+    google.protobuf.Timestamp timestamp = 4;
+}
+
+message User {
+    int32 id = 1;
+    string name = 2;
+}
+
+message Room {
+    int32 id = 1;
+}
+
+message SendMsgsRequest {
+    Msg msg = 1;
+}
+
+message SendMsgsResponse {
+    Msg msg = 1;
+}
+
+message CreateUserRequest {
+    User user = 1;
+}
+
+message CreateUserResponse {
+    int32 error = 1;
+    string msg = 2;
+}
+
+message CreateRoomRequest {
+    Room room = 1;
+}
+
+message CreateRoomResponse {
+    int32 error = 1;
+    string msg = 2;
+}
+
+message JoinRoomRequest {
+    int32 room_id = 1;
+    int32 user_id = 2;
+}
+
+message JoinRoomResponse {
+    int32 error = 1;
+    string msg = 2;
+}
+
+message GetRoomUsersRequest {
+    int32 room_id = 1;
+}
+
+message GetRoomUsersResponse {
+    User user = 1;
+}
+
+service ChatService {
+    rpc SendMsgs(stream SendMsgsRequest) returns (stream SendMsgsResponse);
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+    rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse);
+    rpc GetRoomUsers(GetRoomUsersRequest) returns (stream GetRoomUsersResponse);
+    rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse);
+}
