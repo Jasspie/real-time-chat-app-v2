@@ -19,22 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	ChatService_SendMsgs_FullMethodName     = "/chat.v1.ChatService/SendMsgs"
+	ChatService_Chat_FullMethodName         = "/chat.v1.ChatService/Chat"
 	ChatService_CreateUser_FullMethodName   = "/chat.v1.ChatService/CreateUser"
 	ChatService_CreateRoom_FullMethodName   = "/chat.v1.ChatService/CreateRoom"
 	ChatService_GetRoomUsers_FullMethodName = "/chat.v1.ChatService/GetRoomUsers"
-	ChatService_JoinRoom_FullMethodName     = "/chat.v1.ChatService/JoinRoom"
 )
 
 // ChatServiceClient is the client API for ChatService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatServiceClient interface {
-	SendMsgs(ctx context.Context, opts ...grpc.CallOption) (ChatService_SendMsgsClient, error)
+	Chat(ctx context.Context, opts ...grpc.CallOption) (ChatService_ChatClient, error)
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
 	CreateRoom(ctx context.Context, in *CreateRoomRequest, opts ...grpc.CallOption) (*CreateRoomResponse, error)
 	GetRoomUsers(ctx context.Context, in *GetRoomUsersRequest, opts ...grpc.CallOption) (ChatService_GetRoomUsersClient, error)
-	JoinRoom(ctx context.Context, in *JoinRoomRequest, opts ...grpc.CallOption) (*JoinRoomResponse, error)
 }
 
 type chatServiceClient struct {
@@ -45,32 +43,32 @@ func NewChatServiceClient(cc grpc.ClientConnInterface) ChatServiceClient {
 	return &chatServiceClient{cc}
 }
 
-func (c *chatServiceClient) SendMsgs(ctx context.Context, opts ...grpc.CallOption) (ChatService_SendMsgsClient, error) {
+func (c *chatServiceClient) Chat(ctx context.Context, opts ...grpc.CallOption) (ChatService_ChatClient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &ChatService_ServiceDesc.Streams[0], ChatService_SendMsgs_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &ChatService_ServiceDesc.Streams[0], ChatService_Chat_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &chatServiceSendMsgsClient{ClientStream: stream}
+	x := &chatServiceChatClient{ClientStream: stream}
 	return x, nil
 }
 
-type ChatService_SendMsgsClient interface {
-	Send(*SendMsgsRequest) error
-	Recv() (*SendMsgsResponse, error)
+type ChatService_ChatClient interface {
+	Send(*ChatRequest) error
+	Recv() (*ChatResponse, error)
 	grpc.ClientStream
 }
 
-type chatServiceSendMsgsClient struct {
+type chatServiceChatClient struct {
 	grpc.ClientStream
 }
 
-func (x *chatServiceSendMsgsClient) Send(m *SendMsgsRequest) error {
+func (x *chatServiceChatClient) Send(m *ChatRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *chatServiceSendMsgsClient) Recv() (*SendMsgsResponse, error) {
-	m := new(SendMsgsResponse)
+func (x *chatServiceChatClient) Recv() (*ChatResponse, error) {
+	m := new(ChatResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -130,25 +128,14 @@ func (x *chatServiceGetRoomUsersClient) Recv() (*GetRoomUsersResponse, error) {
 	return m, nil
 }
 
-func (c *chatServiceClient) JoinRoom(ctx context.Context, in *JoinRoomRequest, opts ...grpc.CallOption) (*JoinRoomResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(JoinRoomResponse)
-	err := c.cc.Invoke(ctx, ChatService_JoinRoom_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // ChatServiceServer is the server API for ChatService service.
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility
 type ChatServiceServer interface {
-	SendMsgs(ChatService_SendMsgsServer) error
+	Chat(ChatService_ChatServer) error
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	CreateRoom(context.Context, *CreateRoomRequest) (*CreateRoomResponse, error)
 	GetRoomUsers(*GetRoomUsersRequest, ChatService_GetRoomUsersServer) error
-	JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -156,8 +143,8 @@ type ChatServiceServer interface {
 type UnimplementedChatServiceServer struct {
 }
 
-func (UnimplementedChatServiceServer) SendMsgs(ChatService_SendMsgsServer) error {
-	return status.Errorf(codes.Unimplemented, "method SendMsgs not implemented")
+func (UnimplementedChatServiceServer) Chat(ChatService_ChatServer) error {
+	return status.Errorf(codes.Unimplemented, "method Chat not implemented")
 }
 func (UnimplementedChatServiceServer) CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateUser not implemented")
@@ -167,9 +154,6 @@ func (UnimplementedChatServiceServer) CreateRoom(context.Context, *CreateRoomReq
 }
 func (UnimplementedChatServiceServer) GetRoomUsers(*GetRoomUsersRequest, ChatService_GetRoomUsersServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetRoomUsers not implemented")
-}
-func (UnimplementedChatServiceServer) JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method JoinRoom not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 
@@ -184,26 +168,26 @@ func RegisterChatServiceServer(s grpc.ServiceRegistrar, srv ChatServiceServer) {
 	s.RegisterService(&ChatService_ServiceDesc, srv)
 }
 
-func _ChatService_SendMsgs_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ChatServiceServer).SendMsgs(&chatServiceSendMsgsServer{ServerStream: stream})
+func _ChatService_Chat_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ChatServiceServer).Chat(&chatServiceChatServer{ServerStream: stream})
 }
 
-type ChatService_SendMsgsServer interface {
-	Send(*SendMsgsResponse) error
-	Recv() (*SendMsgsRequest, error)
+type ChatService_ChatServer interface {
+	Send(*ChatResponse) error
+	Recv() (*ChatRequest, error)
 	grpc.ServerStream
 }
 
-type chatServiceSendMsgsServer struct {
+type chatServiceChatServer struct {
 	grpc.ServerStream
 }
 
-func (x *chatServiceSendMsgsServer) Send(m *SendMsgsResponse) error {
+func (x *chatServiceChatServer) Send(m *ChatResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *chatServiceSendMsgsServer) Recv() (*SendMsgsRequest, error) {
-	m := new(SendMsgsRequest)
+func (x *chatServiceChatServer) Recv() (*ChatRequest, error) {
+	m := new(ChatRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -267,24 +251,6 @@ func (x *chatServiceGetRoomUsersServer) Send(m *GetRoomUsersResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _ChatService_JoinRoom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(JoinRoomRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ChatServiceServer).JoinRoom(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ChatService_JoinRoom_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).JoinRoom(ctx, req.(*JoinRoomRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -300,15 +266,11 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "CreateRoom",
 			Handler:    _ChatService_CreateRoom_Handler,
 		},
-		{
-			MethodName: "JoinRoom",
-			Handler:    _ChatService_JoinRoom_Handler,
-		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "SendMsgs",
-			Handler:       _ChatService_SendMsgs_Handler,
+			StreamName:    "Chat",
+			Handler:       _ChatService_Chat_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

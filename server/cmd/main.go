@@ -6,6 +6,9 @@ import (
 	"os"
 
 	"google.golang.org/grpc"
+
+	server "github.com/Jasspie/real-time-chat-app-v2/pkg"
+	pb "github.com/Jasspie/real-time-chat-app-v2/proto/chat/v1"
 )
 
 func main() {
@@ -30,6 +33,12 @@ func main() {
 
 	var opts []grpc.ServerOption
 	s := grpc.NewServer(opts...)
+
+	pb.RegisterChatServiceServer(s, &server.Server{
+		RoomUsers: make(map[string]map[string]pb.ChatService_ChatServer),
+		Rooms:     make(map[string]*pb.Room),
+		Users:     make(map[string]*pb.User),
+	})
 
 	log.Printf("listening at %s\n", addr)
 
