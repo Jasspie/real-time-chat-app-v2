@@ -7,20 +7,10 @@ import "google/protobuf/timestamp.proto";
 option go_package = "github.com/Jasspie/real-time-chat-app-v2/proto/chat/v1";
 
 message Msg {
-    string sender_id = 1;
-    string room_id = 2;
+    string sender = 1;
+    string room = 2;
     string msg = 3;
     google.protobuf.Timestamp timestamp = 4;
-}
-
-message User {
-    string id = 1;
-    string name = 2;
-}
-
-message Room {
-    string id = 1;
-    string name = 2;
 }
 
 message ChatRequest {
@@ -31,8 +21,8 @@ message ChatRequest {
 }
 
 message JoinRoom {
-    string room_id = 1;
-    string user_id = 2;
+    string room = 1;
+    string user = 2;
 }
 
 message SendMsg {
@@ -63,11 +53,11 @@ message CreateRoomResponse {
 
 
 message GetRoomUsersRequest {
-    string room_id = 1;
+    string room = 1;
 }
 
 message GetRoomUsersResponse {
-    User user = 1;
+    string user = 1;
 }
 
 service ChatService {

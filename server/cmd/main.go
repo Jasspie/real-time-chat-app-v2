@@ -36,8 +36,8 @@ func main() {
 
 	pb.RegisterChatServiceServer(s, &server.Server{
 		RoomUsers: make(map[string]map[string]pb.ChatService_ChatServer),
-		Rooms:     make(map[string]*pb.Room),
-		Users:     make(map[string]*pb.User),
+		Rooms:     make(map[string]bool),
+		Users:     make(map[string]bool),
 	})
 
 	log.Printf("listening at %s\n", addr)
