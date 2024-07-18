@@ -75,10 +75,16 @@ func (s *Server) GetRoomUsers(req *pb.GetRoomUsersRequest, stream pb.ChatService
 }
 
 func (s *Server) Chat(req *pb.ChatRequest, stream pb.ChatService_ChatServer) error {
-	for user := range s.RoomUsers[req.Msg.Room] {
-		server := s.RoomUsers[req.Msg.Room][user]
-		if err := server.Send(&pb.ChatResponse{Msg: req.Msg}); err != nil {
-			log.Printf("could not send message  %v", err)
+	if req.GetJoin() != nil { // process join request, add user to a room
+		room := req.GetJoin().Room
+		user := req.GetJoin().User
+		s.addRoomUser(room, user, stream)
+	} else if req.GetMsg() != nil { // process message, send message to all users in the room
+		msg := req.GetMsg().Msg
+		for _, server := range s.getRoomUserServers(msg.Room) {
+			if err := server.Send(&pb.ChatResponse{Msg: msg}); err != nil {
+				log.Printf("could not send message  %v", err)
+			}
 		}
 	}
 	return nil
