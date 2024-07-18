@@ -29,7 +29,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatServiceClient interface {
-	Chat(ctx context.Context, opts ...grpc.CallOption) (ChatService_ChatClient, error)
+	Chat(ctx context.Context, in *ChatRequest, opts ...grpc.CallOption) (ChatService_ChatClient, error)
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
 	CreateRoom(ctx context.Context, in *CreateRoomRequest, opts ...grpc.CallOption) (*CreateRoomResponse, error)
 	GetRoomUsers(ctx context.Context, in *GetRoomUsersRequest, opts ...grpc.CallOption) (ChatService_GetRoomUsersClient, error)
@@ -43,28 +43,29 @@ func NewChatServiceClient(cc grpc.ClientConnInterface) ChatServiceClient {
 	return &chatServiceClient{cc}
 }
 
-func (c *chatServiceClient) Chat(ctx context.Context, opts ...grpc.CallOption) (ChatService_ChatClient, error) {
+func (c *chatServiceClient) Chat(ctx context.Context, in *ChatRequest, opts ...grpc.CallOption) (ChatService_ChatClient, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &ChatService_ServiceDesc.Streams[0], ChatService_Chat_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	x := &chatServiceChatClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
 	return x, nil
 }
 
 type ChatService_ChatClient interface {
-	Send(*ChatRequest) error
 	Recv() (*ChatResponse, error)
 	grpc.ClientStream
 }
 
 type chatServiceChatClient struct {
 	grpc.ClientStream
-}
-
-func (x *chatServiceChatClient) Send(m *ChatRequest) error {
-	return x.ClientStream.SendMsg(m)
 }
 
 func (x *chatServiceChatClient) Recv() (*ChatResponse, error) {
@@ -132,7 +133,7 @@ func (x *chatServiceGetRoomUsersClient) Recv() (*GetRoomUsersResponse, error) {
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility
 type ChatServiceServer interface {
-	Chat(ChatService_ChatServer) error
+	Chat(*ChatRequest, ChatService_ChatServer) error
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	CreateRoom(context.Context, *CreateRoomRequest) (*CreateRoomResponse, error)
 	GetRoomUsers(*GetRoomUsersRequest, ChatService_GetRoomUsersServer) error
@@ -143,7 +144,7 @@ type ChatServiceServer interface {
 type UnimplementedChatServiceServer struct {
 }
 
-func (UnimplementedChatServiceServer) Chat(ChatService_ChatServer) error {
+func (UnimplementedChatServiceServer) Chat(*ChatRequest, ChatService_ChatServer) error {
 	return status.Errorf(codes.Unimplemented, "method Chat not implemented")
 }
 func (UnimplementedChatServiceServer) CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error) {
@@ -169,12 +170,15 @@ func RegisterChatServiceServer(s grpc.ServiceRegistrar, srv ChatServiceServer) {
 }
 
 func _ChatService_Chat_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ChatServiceServer).Chat(&chatServiceChatServer{ServerStream: stream})
+	m := new(ChatRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ChatServiceServer).Chat(m, &chatServiceChatServer{ServerStream: stream})
 }
 
 type ChatService_ChatServer interface {
 	Send(*ChatResponse) error
-	Recv() (*ChatRequest, error)
 	grpc.ServerStream
 }
 
@@ -184,14 +188,6 @@ type chatServiceChatServer struct {
 
 func (x *chatServiceChatServer) Send(m *ChatResponse) error {
 	return x.ServerStream.SendMsg(m)
-}
-
-func (x *chatServiceChatServer) Recv() (*ChatRequest, error) {
-	m := new(ChatRequest)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
 }
 
 func _ChatService_CreateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -272,7 +268,6 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "Chat",
 			Handler:       _ChatService_Chat_Handler,
 			ServerStreams: true,
-			ClientStreams: true,
 		},
 		{
 			StreamName:    "GetRoomUsers",

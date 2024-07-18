@@ -14,18 +14,6 @@ message Msg {
 }
 
 message ChatRequest {
-    oneof payload {
-        JoinRoom join = 1;
-        SendMsg msg = 2;
-    }
-}
-
-message JoinRoom {
-    string room = 1;
-    string user = 2;
-}
-
-message SendMsg {
     Msg msg = 1;
 }
 
@@ -51,7 +39,6 @@ message CreateRoomResponse {
     string msg = 2;
 }
 
-
 message GetRoomUsersRequest {
     string room = 1;
 }
@@ -61,7 +48,7 @@ message GetRoomUsersResponse {
 }
 
 service ChatService {
-    rpc Chat(stream ChatRequest) returns (stream ChatResponse);
+    rpc Chat(ChatRequest) returns (stream ChatResponse);
     rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
     rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse);
     rpc GetRoomUsers(GetRoomUsersRequest) returns (stream GetRoomUsersResponse);

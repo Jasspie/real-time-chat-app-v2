@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"io"
 	"log"
 	"sync"
 
@@ -69,37 +68,18 @@ func (s *Server) GetRoomUsers(req *pb.GetRoomUsersRequest, stream pb.ChatService
 	defer s.mu.RUnlock()
 	for user := range s.RoomUsers[req.Room] {
 		if err := stream.Send(&pb.GetRoomUsersResponse{User: user}); err != nil {
-			log.Printf("could not get  %v", err)
-			return err
+			log.Printf("could not get user %v", err)
 		}
 	}
 	return nil
 }
 
-func (s *Server) Chat(stream pb.ChatService_ChatServer) error {
-	for {
-		req, err := stream.Recv()
-
-		if err == io.EOF {
-			return nil
-		}
-
-		if err != nil {
-			return err
-		}
-
-		if req.GetMsg() != nil { // process message, send message to all Users in the room
-			msg := req.GetMsg().Msg
-			for _, server := range s.getRoomUserServers(msg.Room) {
-				if err := server.Send(&pb.ChatResponse{Msg: msg}); err != nil {
-					log.Printf("broadcast err: %v", err)
-				}
-			}
-		} else if req.GetJoin() != nil { // process join request, add user to a room
-			room := req.GetJoin().Room
-			user := req.GetJoin().User
-			s.addRoomUser(room, user, stream)
-			defer s.deleteRoomUser(room, user)
+func (s *Server) Chat(req *pb.ChatRequest, stream pb.ChatService_ChatServer) error {
+	for user := range s.RoomUsers[req.Msg.Room] {
+		server := s.RoomUsers[req.Msg.Room][user]
+		if err := server.Send(&pb.ChatResponse{Msg: req.Msg}); err != nil {
+			log.Printf("could not send message  %v", err)
 		}
 	}
+	return nil
 }
