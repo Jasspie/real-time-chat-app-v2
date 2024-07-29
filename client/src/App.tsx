@@ -1,15 +1,13 @@
 import React from "react";
-import { ChatServiceClient } from "./proto/ChatServiceClientPb";
-// import Chat from "./pages/ChatPage";
 import { Routes, Route } from "react-router-dom";
 import JoinPage from "./pages/JoinPage";
-
-const client = new ChatServiceClient("http://localhost:8080", null, null);
+import ChatPage from "./pages/ChatPage";
 
 const App: React.FC = () => {
   return (
     <Routes>
-      <Route path="/" element={<JoinPage client={client} />} />
+      <Route path="/" element={<JoinPage />} />
+      <Route path="/chat" element={<ChatPage />} />
     </Routes>
   );
 };

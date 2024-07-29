@@ -2,48 +2,28 @@ package main
 
 import (
 	"log"
-	"net"
-	"os"
+	"net/http"
 
-	"google.golang.org/grpc"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 
+	chatv1connect "github.com/Jasspie/real-time-chat-app-v2/chat/v1/v1connect"
 	server "github.com/Jasspie/real-time-chat-app-v2/pkg"
-	pb "github.com/Jasspie/real-time-chat-app-v2/proto/chat/v1"
 )
 
+const address = "0.0.0.0:9090"
+
 func main() {
-	args := os.Args[1:]
-
-	if len(args) == 0 {
-		log.Fatalln("usage: server [IP_ADDR]")
+	chatter := &server.ChatServer{
+		RoomUsers: make(map[string][]*server.UserSession),
 	}
-
-	addr := args[0]
-	lis, err := net.Listen("tcp", addr)
-
+	mux := http.NewServeMux()
+	path, handler := chatv1connect.NewChatServiceHandler(chatter)
+	mux.Handle(path, handler)
+	err := http.ListenAndServe(address,
+		h2c.NewHandler(mux, &http2.Server{}), // Use h2c so we can serve HTTP/2 without TLS.
+	)
 	if err != nil {
-		log.Fatalf("failed to listen: %v\n", err)
-	}
-
-	defer func(lis net.Listener) {
-		if err := lis.Close(); err != nil {
-			log.Fatalf("unexpected error: %v", err)
-		}
-	}(lis)
-
-	var opts []grpc.ServerOption
-	s := grpc.NewServer(opts...)
-
-	pb.RegisterChatServiceServer(s, &server.Server{
-		RoomUsers: make(map[string]map[string]pb.ChatService_ChatServer),
-		Rooms:     make(map[string]bool),
-		Users:     make(map[string]bool),
-	})
-
-	log.Printf("listening at %s\n", addr)
-
-	defer s.Stop()
-	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v\n", err)
 	}
 }

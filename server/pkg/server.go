@@ -5,87 +5,76 @@ import (
 	"log"
 	"sync"
 
-	pb "github.com/Jasspie/real-time-chat-app-v2/proto/chat/v1"
+	"connectrpc.com/connect"
+
+	v1 "github.com/Jasspie/real-time-chat-app-v2/chat/v1"
+	pb "github.com/Jasspie/real-time-chat-app-v2/chat/v1/v1connect"
 )
 
-type Server struct {
-	RoomUsers map[string]map[string]pb.ChatService_ChatServer
-	Rooms     map[string]bool
-	Users     map[string]bool
-	mu        sync.RWMutex
-	pb.UnimplementedChatServiceServer
+type UserSession struct {
+	Stream   *connect.ServerStream[v1.NewChatSessionResponse]
+	UserName string
+	RoomName string
+	IsActive bool
+	err      chan error
 }
 
-func (s *Server) addRoomUser(roomID string, userID string, srv pb.ChatService_ChatServer) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.RoomUsers[roomID][userID] = srv
+type ChatServer struct {
+	pb.UnimplementedChatServiceHandler
+	RoomUsers map[string][]*UserSession
 }
 
-func (s *Server) deleteRoomUser(roomID string, userID string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.RoomUsers[roomID], userID)
-	if len(s.RoomUsers[roomID]) == 0 {
-		delete(s.RoomUsers, roomID)
+func (cr *ChatServer) NewChatSession(
+	_ context.Context,
+	req *connect.Request[v1.NewChatSessionRequest],
+	stream *connect.ServerStream[v1.NewChatSessionResponse],
+) error {
+	session := &UserSession{
+		Stream:   stream,
+		UserName: req.Msg.UserName,
+		RoomName: req.Msg.RoomName,
+		IsActive: true,
+		err:      make(chan error),
 	}
-	delete(s.Rooms, roomID)
-	delete(s.Users, userID)
+	cr.RoomUsers[session.RoomName] = append(cr.RoomUsers[session.RoomName], session)
+	log.Printf("User %s joined room %s", session.UserName, session.RoomName)
+	return <-session.err
 }
 
-func (s *Server) getRoomUserServers(roomID string) []pb.ChatService_ChatServer {
-	var servers []pb.ChatService_ChatServer
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	for _, server := range s.RoomUsers[roomID] {
-		servers = append(servers, server)
-	}
-	return servers
-}
+func (cr *ChatServer) BroadcastChat(
+	_ context.Context,
+	req *connect.Request[v1.BroadcastChatRequest],
+) (
+	*connect.Response[v1.BroadcastChatResponse],
+	error,
+) {
+	wait := sync.WaitGroup{}
+	done := make(chan int)
 
-func (s *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if _, ok := s.Users[req.Name]; ok {
-		return &pb.CreateUserResponse{Error: 1, Msg: "user already exists"}, nil
-	}
-	s.Users[req.Name] = true
-	return &pb.CreateUserResponse{Error: 0, Msg: "created new user"}, nil
-}
+	for _, conn := range cr.RoomUsers[req.Msg.Msg.RoomName] {
+		wait.Add(1)
 
-func (s *Server) CreateRoom(ctx context.Context, req *pb.CreateRoomRequest) (*pb.CreateRoomResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if _, ok := s.Rooms[req.Name]; ok {
-		return &pb.CreateRoomResponse{Error: 0, Msg: "joined existing room"}, nil
-	}
-	s.Rooms[req.Name] = true
-	return &pb.CreateRoomResponse{Error: 0, Msg: "created new room"}, nil
-}
+		go func(msg *v1.Msg, conn *UserSession) {
+			defer wait.Done()
 
-func (s *Server) GetRoomUsers(req *pb.GetRoomUsersRequest, stream pb.ChatService_GetRoomUsersServer) error {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	for user := range s.RoomUsers[req.Room] {
-		if err := stream.Send(&pb.GetRoomUsersResponse{User: user}); err != nil {
-			log.Printf("could not get user %v", err)
-		}
-	}
-	return nil
-}
+			if conn.IsActive {
+				err := conn.Stream.Send(&v1.NewChatSessionResponse{Msg: msg})
+				log.Printf("Sending message to: %v from %v\n", conn.UserName, msg.UserName)
 
-func (s *Server) Chat(req *pb.ChatRequest, stream pb.ChatService_ChatServer) error {
-	if req.GetJoin() != nil { // process join request, add user to a room
-		room := req.GetJoin().Room
-		user := req.GetJoin().User
-		s.addRoomUser(room, user, stream)
-	} else if req.GetMsg() != nil { // process message, send message to all users in the room
-		msg := req.GetMsg().Msg
-		for _, server := range s.getRoomUserServers(msg.Room) {
-			if err := server.Send(&pb.ChatResponse{Msg: msg}); err != nil {
-				log.Printf("could not send message  %v", err)
+				if err != nil {
+					log.Printf("Error sending message: %v\n", err)
+					conn.IsActive = false
+					conn.err <- err
+				}
 			}
-		}
+		}(req.Msg.Msg, conn)
 	}
-	return nil
+
+	go func() {
+		wait.Wait()
+		close(done)
+	}()
+
+	<-done
+	return &connect.Response[v1.BroadcastChatResponse]{}, nil
 }
