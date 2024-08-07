@@ -7,7 +7,6 @@ require (
 	golang.org/x/net v0.27.0
 	google.golang.org/api v0.190.0
 	google.golang.org/protobuf v1.34.2
-	moul.io/http2curl v1.0.0
 )
 
 require (
@@ -20,7 +19,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
-	github.com/smartystreets/goconvey v1.8.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
 	go.opentelemetry.io/otel v1.24.0 // indirect

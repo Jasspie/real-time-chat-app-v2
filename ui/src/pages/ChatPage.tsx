@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ChatService } from "../proto/chat_connect";
 import { useClient } from "../useClient";
 import { Timestamp } from "@bufbuild/protobuf";

@@ -8,7 +8,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	v1 "github.com/Jasspie/real-time-chat-app-v2/chat/v1"
+	v1 "github.com/Jasspie/real-time-chat-app-v2/server/chat/v1"
 	http "net/http"
 	strings "strings"
 )

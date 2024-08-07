@@ -7,8 +7,8 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
-	chatv1connect "github.com/Jasspie/real-time-chat-app-v2/chat/v1/v1connect"
-	server "github.com/Jasspie/real-time-chat-app-v2/pkg"
+	chatv1connect "github.com/Jasspie/real-time-chat-app-v2/server/chat/v1/v1connect"
+	server "github.com/Jasspie/real-time-chat-app-v2/server/pkg"
 )
 
 const address = "localhost:8030"
@@ -18,9 +18,11 @@ func main() {
 		RoomUsers: make(map[string][]*server.UserSession),
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", server.RootHandler)
-	mux.HandleFunc("/chat", server.CallbackHandler)
+	mux.HandleFunc("/login", server.RootHandler)
+	mux.HandleFunc("/google_callback", server.CallbackHandler)
+	mux.HandleFunc("/", server.HandleStatic)
 
+	// interceptors := connect.WithInterceptors(server.NewAuthInterceptor())
 	path, handler := chatv1connect.NewChatServiceHandler(chatter)
 	mux.Handle(path, handler)
 	err := http.ListenAndServe(address,

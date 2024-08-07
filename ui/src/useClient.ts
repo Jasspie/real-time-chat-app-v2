@@ -5,7 +5,7 @@ import { createPromiseClient, PromiseClient } from "@connectrpc/connect";
 
 // This transport is going to be used throughout the app
 const transport = createConnectTransport({
-    baseUrl: "http://localhost:8080",
+    baseUrl: "http://localhost:8030",
   });
 /**
 * Get a promise client for the given service.

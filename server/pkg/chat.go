@@ -7,8 +7,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	v1 "github.com/Jasspie/real-time-chat-app-v2/chat/v1"
-	pb "github.com/Jasspie/real-time-chat-app-v2/chat/v1/v1connect"
+	v1 "github.com/Jasspie/real-time-chat-app-v2/server/chat/v1"
+	pb "github.com/Jasspie/real-time-chat-app-v2/server/chat/v1/v1connect"
 )
 
 type UserSession struct {

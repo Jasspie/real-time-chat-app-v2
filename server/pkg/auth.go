@@ -1,16 +1,9 @@
-// The flow here follows the documentation page at
-// https://developers.google.com/identity/gsi/web/guides/verify-google-id-token
-//
-// Eli Bendersky [https://eli.thegreenplace.net]
-// This code is in the public domain.
 package server
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"html/template"
-	"io"
 	"net/http"
 	"os"
 	"time"
@@ -23,28 +16,47 @@ var googleClientID = os.Getenv("GOOGLE_CLIENT_ID")
 
 var rootHtmlTemplate = template.Must(template.New("root").Parse(`
 <!DOCTYPE html>
-<html>
-<body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in with Google</title>
     <script src="https://accounts.google.com/gsi/client" async></script>
+    <style>
+        body {
+            background-color: #EAEEF3;
+        }
 
-		<h1>Welcome to this web app!</h1>
-		<p>Let's sign in with Google:</p>
-    <div
-        id="g_id_onload"
-        data-client_id="{{.clientID}}"
-        data-login_uri="{{.callbackURL}}">
-    </div>
-    <div
-        class="g_id_signin"
-        data-type="standard"
-        data-theme="filled_blue"
-        data-text="sign_in_with"
-        data-shape="rectangular"
-				data-width="200"
-        data-logo_alignment="left">
+        .container {
+            padding: 0px 20px;
+        }
+
+        .container h3 {
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>Sign in with Google to Chat</h3>
+        <div
+            id="g_id_onload"
+            data-client_id="{{.clientID}}"
+            data-login_uri="{{.callbackURL}}">
+        </div>
+        <div
+            class="g_id_signin"
+            data-type="standard"
+            data-theme="filled_blue"
+            data-text="sign_in_with"
+            data-shape="rectangular"
+            data-width="200"
+            data-logo_alignment="left">
+        </div>
     </div>
 </body>
 </html>
+
 `))
 
 func RootHandler(w http.ResponseWriter, _ *http.Request) {
@@ -54,7 +66,7 @@ func RootHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	err := rootHtmlTemplate.Execute(w, map[string]string{
-		"callbackURL": "http://localhost:8030/chat",
+		"callbackURL": "http://localhost:8030/google_callback",
 		"clientID":    googleClientID,
 	})
 	if err != nil {
@@ -125,50 +137,5 @@ func CallbackHandler(w http.ResponseWriter, req *http.Request) {
 
 	// 5. tells browsers that the response should be exposed to the front-end JavaScript code.
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
-
-	//TODO: here is where we redirect to our actual application start page
-	// 6. Display meaningful output to the browser
-	err = callBackHtmlTemplate.Execute(w, payload.Claims)
-	if err != nil {
-		panic(err)
-	}
-}
-
-var callBackHtmlTemplate = template.Must(template.New("root").Parse(`
-<!DOCTYPE html>
-<html>
-<body>
-<div>
-<ol>
-<li>email: {{.email}}</li>
-<li>email_verified: {{.email_verified}}</li>
-<li>given_name: {{.given_name}}</li>
-<li>exp: {{.exp}}</li>
-<li>iss: {{.iss}}</li>
-<li>azp: {{.azp}}</li>
-<li>aud: {{.aud}}</li>
-<li>name: {{.name}}</li>
-<li>sub: {{.sub}}</li>
-<li>hd: {{.hd}}</li>
-<li>nbf: {{.nbf}}</li>
-<li>picture: {{.picture}}</li>
-<li>family_name: {{.family_name}}</li>
-<li>iat: {{.iat}}</li>
-<li>jti: {{.jti}}</li>
-</ol>
-    </div>
-</body>
-</html>
-`))
-
-func GetReqBody(req *http.Request) (string, error) {
-	if req == nil || req.Body == nil {
-		return "", nil
-	}
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		return "", err
-	}
-	req.Body = io.NopCloser(bytes.NewBuffer(body))
-	return string(body), nil
+	http.Redirect(w, req, "/", http.StatusSeeOther)
 }
