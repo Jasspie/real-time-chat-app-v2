@@ -55,7 +55,7 @@ const ChatPage: React.FC = () => {
         }),
       });
       await client.broadcastChat(message);
-      const inputElement = document.getElementById("hello") as HTMLInputElement;
+      const inputElement = document.getElementById("input") as HTMLInputElement;
       inputElement.value = "";
     }
   };
@@ -86,7 +86,7 @@ const ChatPage: React.FC = () => {
       </div>
       <div style={styles.chatInput}>
         <input
-          id="hello"
+          id="input"
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}

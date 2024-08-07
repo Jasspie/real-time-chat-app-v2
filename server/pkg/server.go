@@ -22,6 +22,7 @@ type UserSession struct {
 type ChatServer struct {
 	pb.UnimplementedChatServiceHandler
 	RoomUsers map[string][]*UserSession
+	mu        sync.RWMutex
 }
 
 func (cr *ChatServer) NewChatSession(
@@ -36,7 +37,9 @@ func (cr *ChatServer) NewChatSession(
 		IsActive: true,
 		err:      make(chan error),
 	}
+	cr.mu.Lock()
 	cr.RoomUsers[session.RoomName] = append(cr.RoomUsers[session.RoomName], session)
+	cr.mu.Unlock()
 	log.Printf("User %s joined room %s", session.UserName, session.RoomName)
 	return <-session.err
 }
@@ -48,9 +51,10 @@ func (cr *ChatServer) BroadcastChat(
 	*connect.Response[v1.BroadcastChatResponse],
 	error,
 ) {
+	cr.mu.RLock()
+	defer cr.mu.RUnlock()
 	wait := sync.WaitGroup{}
 	done := make(chan int)
-
 	for _, conn := range cr.RoomUsers[req.Msg.Msg.RoomName] {
 		wait.Add(1)
 

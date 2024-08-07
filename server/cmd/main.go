@@ -11,13 +11,16 @@ import (
 	server "github.com/Jasspie/real-time-chat-app-v2/pkg"
 )
 
-const address = "0.0.0.0:9090"
+const address = "localhost:8030"
 
 func main() {
 	chatter := &server.ChatServer{
 		RoomUsers: make(map[string][]*server.UserSession),
 	}
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", server.RootHandler)
+	mux.HandleFunc("/chat", server.CallbackHandler)
+
 	path, handler := chatv1connect.NewChatServiceHandler(chatter)
 	mux.Handle(path, handler)
 	err := http.ListenAndServe(address,
