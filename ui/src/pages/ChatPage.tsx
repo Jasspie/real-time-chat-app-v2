@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ChatService } from "../proto/chat_connect";
 import { useClient } from "../useClient";
 import { Timestamp } from "@bufbuild/protobuf";
+import { ConnectError, Code } from "@connectrpc/connect";
+
 import {
   BroadcastChatRequest,
   Msg,
@@ -26,37 +28,55 @@ const ChatPage: React.FC = () => {
   const [newMessage, setNewMessage] = useState<string>("");
   const chatEndRef = useRef<HTMLDivElement>(null);
   const client = useClient(ChatService);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const stream = client.newChatSession({ userName, roomName });
     const receiveMessages = async () => {
-      for await (const message of stream) {
-        const msgResponse = (message as NewChatSessionResponse).msg;
-        const chatMessage: ChatMessage = {
-          user: msgResponse!.userName,
-          content: msgResponse!.content,
-          timestamp: msgResponse!.timestamp?.toDate() || new Date(),
-          isSelfMsg: msgResponse!.userName === userName,
-        };
-        setMessages((prevMessages) => [...prevMessages, chatMessage]);
+      try {
+        const stream = client.newChatSession({ userName, roomName });
+        for await (const message of stream) {
+          const msgResponse = (message as NewChatSessionResponse).msg;
+          const chatMessage: ChatMessage = {
+            user: msgResponse!.userName,
+            content: msgResponse!.content,
+            timestamp: msgResponse!.timestamp?.toDate() || new Date(),
+            isSelfMsg: msgResponse!.userName === userName,
+          };
+          setMessages((prevMessages) => [...prevMessages, chatMessage]);
+        }
+      } catch (err) {
+        if (err instanceof ConnectError && err.code === Code.Unauthenticated) {
+          navigate("/login");
+          window.location.reload();
+        }
+        console.error(err);
       }
     };
     receiveMessages();
-  }, [client, userName, roomName]);
+  }, [client, userName, roomName, navigate]);
 
   const sendMessage = async () => {
-    if (newMessage.trim()) {
-      const message = new BroadcastChatRequest({
-        msg: new Msg({
-          userName,
-          roomName,
-          content: newMessage,
-          timestamp: Timestamp.now(),
-        }),
-      });
-      await client.broadcastChat(message);
-      const inputElement = document.getElementById("input") as HTMLInputElement;
-      inputElement.value = "";
+    try {
+      if (newMessage.trim()) {
+        const message = new BroadcastChatRequest({
+          msg: new Msg({
+            userName,
+            roomName,
+            content: newMessage,
+            timestamp: Timestamp.now(),
+          }),
+        });
+        await client.broadcastChat(message);
+        const inputElement = document.getElementById(
+          "input"
+        ) as HTMLInputElement;
+        inputElement.value = "";
+      }
+    } catch (err) {
+      if (err instanceof ConnectError && err.code === Code.Unauthenticated) {
+        navigate("/login");
+        window.location.reload();
+      }
     }
   };
 

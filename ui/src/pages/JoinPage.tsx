@@ -47,7 +47,7 @@ const JoinPage: React.FC = () => {
             borderRadius: "4px",
           }}
         >
-          Join
+          Join Room
         </button>
       </div>
     </div>
