@@ -97,10 +97,10 @@ func validateCredentials(cookieHeader string) bool {
 			have: payload.Claims["aud"],
 			want: googleClientID,
 		},
-		{
-			have: payload.Claims["hd"],
-			want: "khanacademy.org",
-		},
+		// {
+		// 	have: payload.Claims["hd"],
+		// 	want: "khanacademy.org",
+		// },
 		{
 			have: payload.Claims["email_verified"],
 			want: true,
