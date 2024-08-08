@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -89,7 +88,6 @@ func validateCredentials(cookieHeader string) bool {
 		return false
 	}
 
-	fmt.Println(payload)
 	// verify JWT by checking aud, expiry, signed by Google, email, email verified, iss
 	payloadChecks := []struct {
 		have any

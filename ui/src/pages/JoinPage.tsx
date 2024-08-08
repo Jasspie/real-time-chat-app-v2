@@ -1,14 +1,25 @@
-import React, { useRef } from "react";
+import Cookies from "js-cookie";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const JoinPage: React.FC = () => {
-  const userRef = useRef<HTMLInputElement>(null);
   const roomRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const [userName, setUserName] = useState<string>("");
+
+  useEffect(() => {
+    // check if user has logged in by checking the username cookie
+    // redirect user if cookie does not exist
+    const cookieUserName = Cookies.get("username");
+    if (!cookieUserName) {
+      navigate("/login");
+      window.location.reload();
+    }
+    setUserName(cookieUserName!)
+  }, [navigate]);
 
   const joinHandler = async () => {
-    if (!userRef.current || !roomRef.current) return;
-    const userName = userRef.current.value;
+    if (!userName || !roomRef.current) return;
     const roomName = roomRef.current.value;
     navigate("/chat", { state: { userName, roomName } });
   };
@@ -16,16 +27,7 @@ const JoinPage: React.FC = () => {
   return (
     <div className="container">
       <div>
-        <h1>Chat</h1>
-      </div>
-      <div style={{ padding: "10px 0" }}>
-        <input
-          ref={userRef}
-          style={{ fontSize: "1.3rem" }}
-          type="text"
-          id="username"
-          placeholder="Your username..."
-        />
+        <h1>Welcome, {userName}</h1>
       </div>
       <div style={{ padding: "10px 0" }}>
         <input
